@@ -33,4 +33,4 @@ template:
       spec:
         containers:
         - name: supertuxkart
-          image: gcr.io/gcgs-beta-demo/supertuxkart-example:0.3
+          image: gcr.io/agones-images/supertuxkart-example:0.2
