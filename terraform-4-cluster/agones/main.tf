@@ -22,7 +22,7 @@ terraform {
 
 // Create a GKE cluster with the appropriate structure
 module "agones_cluster" {
-  source = "git::https://github.com/googleforgames/agones.git//install/terraform/modules/gke/?ref=release-1.4.0"
+  source = "git::https://github.com/googleforgames/agones.git//install/terraform/modules/gke/?ref=release-1.6.0"
 
   cluster = {
     "name"             = var.name
@@ -36,9 +36,9 @@ module "agones_cluster" {
 
 // Install Agones via Helm
 module "helm_agones" {
-  source = "git::https://github.com/googleforgames/agones.git//install/terraform/modules/helm/?ref=release-1.4.0"
+  source = "git::https://github.com/googleforgames/agones.git//install/terraform/modules/helm/?ref=release-1.6.0"
 
-  agones_version         = "1.4.0"
+  agones_version         = "1.6.0"
   values_file            = ""
   chart                  = "agones"
   host                   = module.agones_cluster.host
@@ -55,14 +55,54 @@ module "citadel" {
   cluster_ca_certificate = module.agones_cluster.cluster_ca_certificate
 }
 
+// Install cert-manager.io
+provider "helm" {
+  version = "~> 0.9"
+
+  debug           = true
+  install_tiller  = false
+
+  kubernetes {
+    load_config_file       = false
+    host                   = module.agones_cluster.host
+    token                  = module.agones_cluster.token
+    cluster_ca_certificate = module.agones_cluster.cluster_ca_certificate
+  }
+}
+
+data "helm_repository" "jetstack" {
+  name = "jetstack"
+  url  = "https://charts.jetstack.io"
+
+  depends_on = [module.helm_agones]
+}
+
+resource "helm_release" "cert_manager" {
+  name = "cert-manager"
+  force_update = "true"
+  repository = data.helm_repository.jetstack.metadata.0.name
+  chart = "cert-manager"
+  version = "v0.15.1"
+  timeout = 420
+  namespace = "cert-manager"
+
+  set {
+    name  = "installCRDs"
+    value = true
+  }
+}
+
 // Register the cluster with the realm
 resource "google_game_services_game_server_cluster" "registry" {
   provider   = google-beta
   project    = var.project
-  depends_on = [module.agones_cluster, module.helm_agones, module.citadel]
+  depends_on = [module.agones_cluster, module.helm_agones, module.citadel, helm_release.cert_manager]
 
   cluster_id = var.name
   realm_id   = var.realm
+  timeouts {
+    create = "10m"
+  }
 
   connection_info {
     gke_cluster_reference {

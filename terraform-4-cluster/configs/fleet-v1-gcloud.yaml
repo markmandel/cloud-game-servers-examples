@@ -16,21 +16,25 @@
 # A singular Fleet "spec" to be applied to a GCGS Config
 # See: https://agones.dev/site/docs/reference/fleet/ for reference
 #
+# Formatted as needed for gcloud commands
+#
 
-replicas: 2
-template:
-  metadata:
-    labels:
-      version: "1.0"
-  spec:
-    ports:
-    - name: default
-      containerPort: 8080
-    health:
-      initialDelaySeconds: 30
-      periodSeconds: 60
+- name: supertuxkart
+  fleetSpec:
+    replicas: 2
     template:
+      metadata:
+        labels:
+          version: "1.0"
       spec:
+        ports:
+        - name: default
+          containerPort: 8080
+        health:
+          initialDelaySeconds: 30
+          periodSeconds: 60
+        template:
+          spec:
         containers:
         - name: supertuxkart
           image: gcr.io/agones-images/supertuxkart-example:0.2

@@ -110,7 +110,7 @@ resource "google_game_services_game_server_config" "v1" {
 
   fleet_configs {
     name       = "supertuxkart"
-    fleet_spec = jsonencode(yamldecode(file("./configs/fleet-v1.yaml")))
+    fleet_spec = jsonencode(yamldecode(file("./configs/fleet-v1-tf.yaml")))
   }
 }
 
